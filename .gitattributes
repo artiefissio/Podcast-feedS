@@ -1,1 +1,2 @@
 episodes_mp3/*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
