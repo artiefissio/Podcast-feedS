@@ -2,204 +2,184 @@ import os
 import subprocess
 import math
 import json
-import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 import requests
 from bs4 import BeautifulSoup
 
-# --- Paths ---
-BASE = "/Users/test/Podcast-feedS"
-MP3_FOLDER = f"{BASE}/episodes_mp3"
-LOG_FOLDER = f"{BASE}/logs"
-RSS_FILE = f"{BASE}/smear_campaign_feed.xml"
-TRACK_FILE = f"{BASE}/downloaded_episodes.json"
+# --- Config ---
+MP3_FOLDER = "episodes_mp3"
+RSS_FILE = "smear_campaign_feed.xml"
+TRACK_FILE = "downloaded_episodes.json"
+HOST_NAME = "DJ Tone Deaf"
+CHANNEL_IMAGE = "channel_image.jpg"
+CATEGORY = "Music"
+LANG = "en-US"
+EXPLICIT = "no"
+MAX_SIZE_BYTES = 99 * 1024 * 1024  # 99MB max
+GITHUB_PUSH = True  # Push automatically to GitHub
+BASE_URL = "https://artiefissio.github.io/Podcast-feedS/"
 
-# --- Automatic folder creation ---
+STREAM_URL = "https://ktal.broadcasttool.stream/stream"
+
 os.makedirs(MP3_FOLDER, exist_ok=True)
-os.makedirs(LOG_FOLDER, exist_ok=True)
 
-# --- Safety Lock ---
-LOCK_FILE = f"{BASE}/recording.lock"
-if os.path.exists(LOCK_FILE):
-    print("Another recording is already running. Exiting.")
-    exit(0)
-
-with open(LOCK_FILE, "w") as f:
-    f.write("locked\n")
-
-# --- Log rotation (7 days) ---
-def rotate_logs():
-    now = datetime.now()
-    for log in os.listdir(LOG_FOLDER):
-        path = os.path.join(LOG_FOLDER, log)
-        if os.path.isfile(path):
-            mtime = datetime.fromtimestamp(os.path.getmtime(path))
-            if (now - mtime).days > 7:
-                os.remove(path)
-
-rotate_logs()
-
-# --- Load previous episodes ---
+# Load previous episodes
 if os.path.exists(TRACK_FILE):
     with open(TRACK_FILE, "r") as f:
         downloaded = json.load(f)
 else:
     downloaded = {}
 
-MAX_SIZE_BYTES = 99 * 1024 * 1024
-
-# --- Split large MP3 ---
+# Helper: split large MP3 into parts
 def split_mp3(file_path, max_size=MAX_SIZE_BYTES):
+    if not os.path.exists(file_path):
+        return []
     size_bytes = os.path.getsize(file_path)
     if size_bytes <= max_size:
         return [file_path]
-
     duration_sec = float(subprocess.getoutput(
-        f"ffprobe -v error -show_entries format=duration "
-        f"-of default=noprint_wrappers=1:nokey=1 '{file_path}'"
+        f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '{file_path}'"
     ))
-
     parts = math.ceil(size_bytes / max_size)
-    segment = math.ceil(duration_sec / parts)
-    results = []
-
+    segment_time = math.ceil(duration_sec / parts)
+    part_files = []
     for i in range(parts):
-        out = file_path.replace(".mp3", f"_part{i+1:03d}.mp3")
+        part_filename = file_path.replace(".mp3", f"_part{i+1:03d}.mp3")
         subprocess.run([
             "ffmpeg", "-i", file_path,
-            "-ss", str(i * segment),
-            "-t", str(segment),
-            "-c", "copy", "-y", out
+            "-ss", str(i*segment_time),
+            "-t", str(segment_time),
+            "-c", "copy", "-y", part_filename
         ])
-        results.append(out)
-
+        part_files.append(part_filename)
     os.remove(file_path)
-    return results
+    return part_files
 
-# --- Spinitron metadata fetch ---
-SPINITRON_BASE = "https://spinitron.com"
-CAL_URL = "https://spinitron.com/KTAL/calendar?layout=1"
-
-def get_metadata(title):
+# --- Scrape Spinitron metadata ---
+def scrape_spinitron():
+    url = "https://spinitron.com/KTAL/calendar?layout=1"
     try:
-        resp = requests.get(CAL_URL)
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        link = soup.find("a", string=lambda t: t and title.lower() in t.lower())
-        if not link:
-            return {"tracklist": "", "image": "", "url": ""}
-
-        show_url = SPINITRON_BASE + link["href"]
-        show_resp = requests.get(show_url)
-        show_soup = BeautifulSoup(show_resp.text, "html.parser")
-
-        tracks = [
-            li.get_text(strip=True)
-            for li in show_soup.select("div.playlist-tracks li")
-        ]
-        tracklist_html = "<ul>" + "".join(f"<li>{t}</li>" for t in tracks) + "</ul>"
-
-        img_elem = show_soup.select_one("div.playlist-art img")
-        image = img_elem["src"] if img_elem else ""
-
-        return {
-            "tracklist": tracklist_html,
-            "image": image,
-            "url": show_url
-        }
+        resp = requests.get(url)
     except:
-        return {"tracklist": "", "image": "", "url": ""}
+        return {}
 
-# --- Schedule (fixed) ---
+    soup = BeautifulSoup(resp.text, "html.parser")
+    out = {}
 
-SATURDAY_SHOWS = [
-    ("Wolfman Max Wide World of Funk", 17),
-    ("Wolfman Max Wide World of Funk", 18),
-    ("Smear Campaign", 19),
-    ("Johnny Catalog Catalog", 20),
-    ("Brain Salad", 21),
+    for a in soup.select("a[href*='/KTAL/pl/']"):
+        ep_url = "https://spinitron.com" + a['href'].split("?")[0]
+        ep_title = a.text.strip()
+
+        try:
+            ep_resp = requests.get(ep_url)
+            ep_soup = BeautifulSoup(ep_resp.text, "html.parser")
+
+            # Tracklist
+            tracks = ep_soup.select("div.playlist-tracks li")
+            tracklist = "<ul>" + "".join(f"<li>{t.get_text(strip=True)}</li>" for t in tracks) + "</ul>" if tracks else ""
+
+            img = ep_soup.select_one("div.playlist-art img")
+            image = img["src"] if img else CHANNEL_IMAGE
+
+            out[ep_title] = {
+                "url": ep_url,
+                "tracklist_html": tracklist,
+                "image": image
+            }
+        except:
+            continue
+
+    return out
+
+ktal_episodes = scrape_spinitron()
+
+# --- Schedule fixed ---
+shows = [
+    {"name": "Wolfman Max – Wide World of Funk", "day": 5, "hours": [17, 18]},
+    {"name": "The Smear Campaign", "day": 5, "hours": [19]},
+    {"name": "Johnny Catalog – Catalog", "day": 5, "hours": [20]},
+    {"name": "Brain Salad", "day": 5, "hours": [21]},
+    {"name": "Lost Highway", "day": 1, "hours": [20]},
+    {"name": "Soul Salad", "day": 0, "hours": [16]}
 ]
 
-STREAM_URL = "https://ktal.broadcasttool.stream/stream"
-
-# --- Determine show ---
+today = datetime.today().weekday()
 now = datetime.now()
-weekday = now.weekday()   # Monday=0 ... Sunday=6
-hour = now.hour
 
-show_to_record = None
+# --- Record shows ---
+for show in shows:
+    if today != show["day"]:
+        continue
 
-# Sunday: Soul Salad @ 16:00
-if weekday == 6 and hour == 16:
-    show_to_record = ("Soul Salad", 16)
+    for hr in show["hours"]:
+        timestamp_str = now.strftime("%Y-%m-%d_") + f"{hr:02}00"
+        safe_title = show["name"].replace(" ", "_").replace("/", "_")
+        mp3_file = os.path.join(MP3_FOLDER, f"{timestamp_str}_{safe_title}.mp3")
 
-# Monday: Lost Highway @ 20:00
-if weekday == 1 and hour == 20:
-    show_to_record = ("Lost Highway", 20)
+        print(f"Recording {show['name']} to {mp3_file}...")
 
-# Saturday: multiple shows
-if weekday == 5:
-    for title, show_hour in SATURDAY_SHOWS:
-        if hour == show_hour:
-            show_to_record = (title, show_hour)
+        subprocess.run([
+            "ffmpeg", "-i", STREAM_URL,
+            "-c:a", "libmp3lame",
+            "-b:a", "128k",
+            "-t", "01:00:00",
+            "-y",
+            mp3_file
+        ])
 
-# Manual force mode
-if len(sys.argv) > 1 and sys.argv[1] == "force":
-    show_to_record = ("TEST RECORDING", hour)
+        if not os.path.exists(mp3_file):
+            print(f"Recording failed: {mp3_file}")
+            continue
 
-if not show_to_record:
-    print("Nothing scheduled right now.")
-    os.remove(LOCK_FILE)
-    exit(0)
+        mp3_files = split_mp3(mp3_file)
+        ep_meta = ktal_episodes.get(show["name"], {})
 
-title, show_hour = show_to_record
-timestamp = now.strftime("%Y-%m-%d_%H%M")
-outfile = f"{MP3_FOLDER}/{timestamp}_{title.replace(' ', '_')}.mp3"
-logfile = f"{LOG_FOLDER}/{title.replace(' ', '_')}.log"
+        downloaded[timestamp_str] = {
+            "mp3_files": mp3_files,
+            "title": show["name"],
+            "pubDate": now.isoformat(),
+            "description": f"<p><strong>{show['name']}</strong></p>"
+                           f"<p><a href='{ep_meta.get('url','')}'>Show page</a></p>"
+                           f"{ep_meta.get('tracklist_html','')}",
+            "episode_image": ep_meta.get("image", CHANNEL_IMAGE)
+        }
 
-print(f"Recording: {title} → {outfile}")
-
-# --- Metadata ---
-meta = get_metadata(title)
-
-# --- Recording ---
-cmd = [
-    "ffmpeg",
-    "-i", STREAM_URL,
-    "-c:a", "libmp3lame",
-    "-b:a", "128k",
-    "-t", "3600",
-    "-y", outfile
-]
-
-result = subprocess.run(cmd, capture_output=True, text=True)
-
-with open(logfile, "a") as f:
-    f.write(f"\n[{timestamp}] Recording started\n")
-    f.write(result.stdout + "\n" + result.stderr + "\n")
-
-if result.returncode != 0 or not os.path.exists(outfile):
-    print("Recording failed.")
-    os.remove(LOCK_FILE)
-    exit(1)
-
-# --- Split if needed ---
-mp3_files = split_mp3(outfile)
-
-downloaded[timestamp] = {
-    "title": title,
-    "mp3_files": mp3_files,
-    "timestamp": timestamp,
-    "tracklist": meta["tracklist"],
-    "image": meta["image"],
-    "spinitron_url": meta["url"]
-}
-
+# --- Save JSON ---
 with open(TRACK_FILE, "w") as f:
     json.dump(downloaded, f, indent=2)
 
-# --- Remove Lock ---
-os.remove(LOCK_FILE)
+# --- Build RSS feed ---
+rss = Element("rss", version="2.0", attrib={"xmlns:itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"})
+channel = SubElement(rss, "channel")
+SubElement(channel, "title").text = "Automated Radio Shows – DJ Tone Deaf"
+SubElement(channel, "link").text = BASE_URL
+SubElement(channel, "description").text = "Automated recordings with metadata"
+SubElement(channel, "language").text = LANG
+SubElement(channel, "itunes:author").text = HOST_NAME
+SubElement(channel, "itunes:explicit").text = EXPLICIT
+SubElement(channel, "itunes:image", href=CHANNEL_IMAGE)
+itunes_category = SubElement(channel, "itunes:category")
+itunes_category.set("text", CATEGORY)
 
-print("Recording complete.")
+for key, ep in downloaded.items():
+    for idx, file_path in enumerate(ep["mp3_files"]):
+        item = SubElement(channel, "item")
+        SubElement(item, "title").text = ep["title"] + (f" – Part {idx+1}" if len(ep["mp3_files"])>1 else "")
+        SubElement(item, "description").text = ep["description"]
+        SubElement(item, "pubDate").text = ep["pubDate"]
+        SubElement(item, "itunes:author").text = HOST_NAME
+        SubElement(item, "itunes:explicit").text = EXPLICIT
+        SubElement(item, "itunes:image", href=ep["episode_image"])
+        SubElement(item, "itunes:duration").text = "3600"
+        SubElement(item, "enclosure", url=f"{BASE_URL}{file_path}", length=str(os.path.getsize(file_path)), type="audio/mpeg")
+        SubElement(item, "guid").text = f"{BASE_URL}{file_path}"
+
+tree = ElementTree(rss)
+tree.write(RSS_FILE, encoding="utf-8", xml_declaration=True)
+
+# --- Optional GitHub push ---
+if GITHUB_PUSH:
+    subprocess.run(["git", "add", "."])
+    subprocess.run(["git", "commit", "-m", "Auto update"], stderr=subprocess.DEVNULL)
+    subprocess.run(["git", "push", "origin", "main"])

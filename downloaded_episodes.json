@@ -7,5 +7,50 @@
     "pubDate": "2025-11-16T16:00:00",
     "description": "Recording of Soul Salad block 1",
     "episode_image": "channel_image.jpg"
+  },
+  "2025-11-29_1700": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-29_1700_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
+    ],
+    "title": "Wolfman Max \u2013 Wide World of Funk",
+    "pubDate": "2025-11-29T17:06:48.264201",
+    "description": "<p><strong>Wolfman Max \u2013 Wide World of Funk</strong></p><p><a href=''>Show page</a></p>",
+    "episode_image": "channel_image.jpg"
+  },
+  "2025-11-29_1800": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-29_1800_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
+    ],
+    "title": "Wolfman Max \u2013 Wide World of Funk",
+    "pubDate": "2025-11-29T17:06:48.264201",
+    "description": "<p><strong>Wolfman Max \u2013 Wide World of Funk</strong></p><p><a href=''>Show page</a></p>",
+    "episode_image": "channel_image.jpg"
+  },
+  "2025-11-29_1900": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-29_1900_The_Smear_Campaign.mp3"
+    ],
+    "title": "The Smear Campaign",
+    "pubDate": "2025-11-29T17:06:48.264201",
+    "description": "<p><strong>The Smear Campaign</strong></p><p><a href=''>Show page</a></p>",
+    "episode_image": "channel_image.jpg"
+  },
+  "2025-11-29_2000": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-29_2000_Johnny_Catalog_\u2013_Catalog.mp3"
+    ],
+    "title": "Johnny Catalog \u2013 Catalog",
+    "pubDate": "2025-11-29T17:06:48.264201",
+    "description": "<p><strong>Johnny Catalog \u2013 Catalog</strong></p><p><a href=''>Show page</a></p>",
+    "episode_image": "channel_image.jpg"
+  },
+  "2025-11-29_2100": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-29_2100_Brain_Salad.mp3"
+    ],
+    "title": "Brain Salad",
+    "pubDate": "2025-11-29T17:06:48.264201",
+    "description": "<p><strong>Brain Salad</strong></p><p><a href=''>Show page</a></p>",
+    "episode_image": "channel_image.jpg"
   }
 }

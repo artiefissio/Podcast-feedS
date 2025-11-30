@@ -10,3 +10,35 @@ Nothing scheduled right now.
 /Users/test/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
   warnings.warn(
 Nothing scheduled right now.
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "/Users/test/Podcast-feedS/record_radio_shows.py", line 7, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
