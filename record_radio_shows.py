@@ -184,24 +184,26 @@ def rfc2822(dt: datetime) -> str:
 
 # --- Spinitron helpers (best-effort) ---
 
-def scrape_smear_campaign_latest():
+def scrape_spinitron_show(archive_url: str):
     """
-    Best-effort scrape of the latest Smear Campaign playlist:
-    - Gets show page
-    - Finds first playlist link (/KTAL/pl/)
-    - Pulls tracklist + image
+    Generic Spinitron scraper for any KTAL show.
+    - Finds newest playlist
+    - Pulls tracklist
+    - Gets show/playlist art
+    - Gets DJ/Host name (best effort)
     """
-    archive_url = "https://spinitron.com/KTAL/show/277361/The-Smear-Campaign?layout=1"
+    if not archive_url:
+        return {}
+
     try:
         resp = requests.get(archive_url, timeout=15)
         resp.raise_for_status()
     except Exception as e:
-        print(f"[Spinitron] Error fetching archive: {e}")
+        print(f"[Spinitron] Archive fetch error: {e}")
         return {}
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # Find first playlist link
     pl_link = soup.select_one("a[href*='/KTAL/pl/']")
     if not pl_link:
         return {}
@@ -212,7 +214,7 @@ def scrape_smear_campaign_latest():
         pl_resp = requests.get(playlist_url, timeout=15)
         pl_resp.raise_for_status()
     except Exception as e:
-        print(f"[Spinitron] Error fetching playlist: {e}")
+        print(f"[Spinitron] Playlist fetch error: {e}")
         return {}
 
     pl_soup = BeautifulSoup(pl_resp.text, "html.parser")
@@ -224,21 +226,19 @@ def scrape_smear_campaign_latest():
         items = "".join(f"<li>{t.get_text(strip=True)}</li>" for t in tracks)
         track_html = f"<ul>{items}</ul>"
 
-    # Image
+    # Show / playlist image
     img_elem = pl_soup.select_one("div.playlist-art img")
     image = img_elem["src"] if img_elem and img_elem.get("src") else CHANNEL_IMAGE
 
-    # DJ / host – best-effort, may need tweaking
-    dj = ""
-    possible = pl_soup.select_one(".show-dj, .show-host, .host, .field-name-host")
-    if possible:
-        dj = possible.get_text(strip=True)
+    # DJ name
+    dj_elem = pl_soup.select_one(".show-dj, .show-host, .host, .field-name-host")
+    dj = dj_elem.get_text(strip=True) if dj_elem else HOST_NAME
 
     return {
         "playlist_url": playlist_url,
         "tracklist_html": track_html,
         "image": image,
-        "dj": dj or HOST_NAME,
+        "dj": dj,
     }
 
 
@@ -358,10 +358,12 @@ def main():
     print(f"[INFO] Recording show: {show_name} (block {block_index})")
     print(f"[INFO] Output file: {mp3_file}")
 
-    # For The Smear Campaign, try to pull fresh metadata
-    smear_meta = None
-    if "Smear Campaign" in show_name:
-        smear_meta = scrape_smear_campaign_latest()
+    # Generic: If show has a Spinitron archive, scrape metadata
+    meta = {}
+    if show.get("spinitron_archive"):
+        meta = scrape_spinitron_show(show["spinitron_archive"])
+    else:
+        meta = {}
 
     # Record 1 hour from KTAL stream at 192 kbps
     cmd = [
@@ -386,13 +388,13 @@ def main():
 
     # Build metadata & store in downloaded list
     ep_key = f"{timestamp_str}_{safe_title}"
-    description = build_episode_description(show_name, start_dt, smear_meta if smear_meta else None)
-    episode_image = smear_meta["image"] if smear_meta and smear_meta.get("image") else CHANNEL_IMAGE
-    episode_author = smear_meta["dj"] if smear_meta and smear_meta.get("dj") else HOST_NAME
+    description = build_episode_description(show_name, start_dt, meta)
+    episode_image = meta.get("image", CHANNEL_IMAGE)
+    episode_author = meta.get("dj", HOST_NAME)
 
     downloaded[ep_key] = {
         "mp3_files": mp3_files,
-        "title": f"{show_name} – {start_dt.strftime('%Y-%m-%d %H:%M')}",
+        "title": f"{show_name} – {start_dt.strftime('%a %b %d, %Y %I%p')}",
         "pubDate_iso": start_dt.isoformat(),
         "description_html": description,
         "episode_image": episode_image,
