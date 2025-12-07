@@ -1,4 +1,44 @@
 {
+  "2025-11-30_1600_Soul_Salad": {
+    "mp3_files": [
+      "episodes_mp3/2025-11-30_1600_Soul_Salad.mp3"
+    ],
+    "title": "Soul Salad \u2013 Sun Nov 30, 2025 04PM",
+    "pubDate_iso": "2025-11-30T16:00:00",
+    "description_html": "<p><strong>Soul Salad</strong></p>\n<p>Aired: Sunday November 30, 2025 \u2022 04:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
+  "2025-12-01_2000_Lost_Highway": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-01_2000_Lost_Highway.mp3"
+    ],
+    "title": "Lost Highway \u2013 Mon Dec 01, 2025 08PM",
+    "pubDate_iso": "2025-12-01T20:00:00",
+    "description_html": "<p><strong>Lost Highway</strong></p>\n<p>Aired: Monday December 01, 2025 \u2022 08:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
+  "2025-12-06_1700_Wolfman_Max_\u2013_Wide_World_of_Funk": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-06_1700_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
+    ],
+    "title": "Wolfman Max \u2013 Wide World of Funk \u2013 Sat Dec 06, 2025 05PM",
+    "pubDate_iso": "2025-12-06T17:00:00",
+    "description_html": "<p><strong>Wolfman Max \u2013 Wide World of Funk</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 05:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
+  "2025-12-06_1800_Wolfman_Max_\u2013_Wide_World_of_Funk": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-06_1800_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
+    ],
+    "title": "Wolfman Max \u2013 Wide World of Funk \u2013 Sat Dec 06, 2025 06PM",
+    "pubDate_iso": "2025-12-06T18:00:00",
+    "description_html": "<p><strong>Wolfman Max \u2013 Wide World of Funk</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 06:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
   "2025-12-06_1900_The_Smear_Campaign": {
     "mp3_files": [
       "episodes_mp3/2025-12-06_1900_The_Smear_Campaign.mp3"
