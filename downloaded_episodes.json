@@ -39,16 +39,6 @@
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
   },
-  "2025-12-06_1900_The_Smear_Campaign": {
-    "mp3_files": [
-      "episodes_mp3/2025-12-06_1900_The_Smear_Campaign.mp3"
-    ],
-    "title": "The Smear Campaign \u2013 Sat Dec 06, 2025 07PM",
-    "pubDate_iso": "2025-12-06T19:00:00",
-    "description_html": "<p><strong>The Smear Campaign</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 07:00 PM</p>",
-    "episode_image": "channel_image.jpg",
-    "author": "DJ Tone Deaf"
-  },
   "2025-12-06_2000_Johnny_Catalog_\u2013_Catalog": {
     "mp3_files": [
       "episodes_mp3/2025-12-06_2000_Johnny_Catalog_\u2013_Catalog.mp3"
@@ -56,6 +46,16 @@
     "title": "Johnny Catalog \u2013 Catalog \u2013 Sat Dec 06, 2025 08PM",
     "pubDate_iso": "2025-12-06T20:00:00",
     "description_html": "<p><strong>Johnny Catalog \u2013 Catalog</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 08:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
+  "2025-12-06_2100_Brain_Salad": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-06_2100_Brain_Salad.mp3"
+    ],
+    "title": "Brain Salad \u2013 Sat Dec 06, 2025 09PM",
+    "pubDate_iso": "2025-12-06T21:00:00",
+    "description_html": "<p><strong>Brain Salad</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 09:00 PM</p>",
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
   }
