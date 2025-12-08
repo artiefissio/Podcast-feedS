@@ -68,5 +68,15 @@
     "description_html": "<p><strong>Brain Salad</strong></p>\n<p>Aired: Saturday December 06, 2025 \u2022 09:00 PM</p>",
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
+  },
+  "2025-12-07_1600_Soul_Salad": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-07_1600_Soul_Salad.mp3"
+    ],
+    "title": "Soul Salad \u2013 Sun Dec 07, 2025 04PM",
+    "pubDate_iso": "2025-12-07T16:00:00",
+    "description_html": "<p><strong>Soul Salad</strong></p>\n<p>Aired: Sunday December 07, 2025 \u2022 04:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
   }
 }
