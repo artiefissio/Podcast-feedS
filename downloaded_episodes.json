@@ -78,5 +78,15 @@
     "description_html": "<p><strong>Soul Salad</strong></p>\n<p>Aired: Sunday December 07, 2025 \u2022 04:00 PM</p>",
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
+  },
+  "2025-12-08_2000_Lost_Highway": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-08_2000_Lost_Highway.mp3"
+    ],
+    "title": "Lost Highway \u2013 Mon Dec 08, 2025 08PM",
+    "pubDate_iso": "2025-12-08T20:00:00",
+    "description_html": "<p><strong>Lost Highway</strong></p>\n<p>Aired: Monday December 08, 2025 \u2022 08:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
   }
 }
