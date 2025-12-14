@@ -89,16 +89,6 @@
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
   },
-  "2025-12-13_1700_Wolfman_Max_\u2013_Wide_World_of_Funk": {
-    "mp3_files": [
-      "episodes_mp3/2025-12-13_1700_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
-    ],
-    "title": "Wolfman Max \u2013 Wide World of Funk \u2013 Sat Dec 13, 2025 05PM",
-    "pubDate_iso": "2025-12-13T17:00:00",
-    "description_html": "<p><strong>Wolfman Max \u2013 Wide World of Funk</strong></p>\n<p>Aired: Saturday December 13, 2025 \u2022 05:00 PM</p>",
-    "episode_image": "channel_image.jpg",
-    "author": "DJ Tone Deaf"
-  },
   "2025-12-13_1800_Wolfman_Max_\u2013_Wide_World_of_Funk": {
     "mp3_files": [
       "episodes_mp3/2025-12-13_1800_Wolfman_Max_\u2013_Wide_World_of_Funk.mp3"
@@ -126,6 +116,16 @@
     "title": "Johnny Catalog \u2013 Catalog \u2013 Sat Dec 13, 2025 08PM",
     "pubDate_iso": "2025-12-13T20:00:00",
     "description_html": "<p><strong>Johnny Catalog \u2013 Catalog</strong></p>\n<p>Aired: Saturday December 13, 2025 \u2022 08:00 PM</p>",
+    "episode_image": "channel_image.jpg",
+    "author": "DJ Tone Deaf"
+  },
+  "2025-12-13_2100_Brain_Salad": {
+    "mp3_files": [
+      "episodes_mp3/2025-12-13_2100_Brain_Salad.mp3"
+    ],
+    "title": "Brain Salad \u2013 Sat Dec 13, 2025 09PM",
+    "pubDate_iso": "2025-12-13T21:00:00",
+    "description_html": "<p><strong>Brain Salad</strong></p>\n<p>Aired: Saturday December 13, 2025 \u2022 09:00 PM</p>",
     "episode_image": "channel_image.jpg",
     "author": "DJ Tone Deaf"
   }
