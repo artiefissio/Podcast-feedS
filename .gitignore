@@ -1,0 +1,10 @@
+.DS_Store
+cron.log
+cron_log.txt
+logs/
+episodes_mp3/.DS_Store
+episodes_mp3/*.mp3
+*.mp3
+downloaded_episodes.json
+__pycache__/
+smear_campaign_feed.xml
