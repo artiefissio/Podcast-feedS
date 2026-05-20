@@ -2,6 +2,9 @@
 cron.log
 cron_log.txt
 logs/
+venv/
+.venv/
+*.pyc
 episodes_mp3/.DS_Store
 episodes_mp3/*.mp3
 *.mp3

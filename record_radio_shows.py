@@ -6,6 +6,7 @@ import shutil
 import tempfile
 import re
 import argparse
+import platform
 from datetime import datetime
 from email.utils import format_datetime
 from typing import Callable
@@ -62,6 +63,9 @@ def _env_bool(name: str, default: bool) -> bool:
     return val.lower() in ("1", "true", "yes", "on")
 
 
+RETENTION_DAYS = _env_int("RETENTION_DAYS", 14)
+
+
 # Audio / ffmpeg
 STREAM_URL = os.getenv("STREAM_URL", "https://ktal.broadcasttool.stream/stream")
 AUDIO_BITRATE = os.getenv("AUDIO_BITRATE", "192k")  # 192 kbps as requested
@@ -73,8 +77,8 @@ FFPROBE_BIN = os.getenv("FFPROBE_BIN", "/opt/homebrew/bin/ffprobe")
 # Git auto-push
 GITHUB_PUSH = _env_bool("GITHUB_PUSH", True)
 
-# iMessage (REPLACE with your iMessage-enabled number)
-IMESSAGE_NUMBER = os.getenv("IMESSAGE_NUMBER", "5058143699")  # Arturo's iMessage-enabled number
+# iMessage notification. Leave blank on non-Mac hosts such as a VPS.
+IMESSAGE_NUMBER = os.getenv("IMESSAGE_NUMBER", "")
 
 # Timing / locking
 LOCK_STALE_SECONDS = _env_int("LOCK_STALE_SECONDS", 3 * 3600)
@@ -179,6 +183,9 @@ def send_imessage(phone_number: str, message: str) -> None:
     Your Mac must be logged into Messages with this number / Apple ID.
     """
     if not phone_number:
+        return
+    if platform.system() != "Darwin" or not shutil.which("osascript"):
+        log_line("[INFO] iMessage notification skipped: osascript unavailable.")
         return
 
     apple_script = f'''
@@ -555,28 +562,48 @@ def build_episode_description(show_name: str, start_dt: datetime, meta: dict | N
 
 
 # =======================
-# Automated cleanup (keep only 3 weeks)
+# Automated cleanup (keep only the retention window)
 # =======================
 
-def cleanup_old_episodes(retention_days: int = 21):
+
+def episode_paths(downloaded: dict) -> set[str]:
     """
-    Deletes MP3 files and metadata older than X days (default 21 days = 3 weeks).
+    Return normalized MP3 paths referenced by retained metadata.
+    """
+    paths: set[str] = set()
+    for ep in downloaded.values():
+        for file_path in ep.get("mp3_files", []):
+            if file_path:
+                paths.add(os.path.normpath(file_path))
+    return paths
+
+
+def cleanup_old_episodes(downloaded: dict | None = None, retention_days: int = RETENTION_DAYS):
+    """
+    Delete MP3 files outside retained metadata.
+
+    If metadata is unavailable, fall back to file mtime and retention_days.
     """
     if not os.path.isdir(MP3_FOLDER):
         return []
 
     now = datetime.now()
     threshold = now.timestamp() - (retention_days * 86400)
+    retained_paths = episode_paths(downloaded) if downloaded is not None else None
 
     removed = []
 
-    # Clean MP3 files
     for fname in os.listdir(MP3_FOLDER):
-        if not fname.endswith(".mp3"):
+        if not fname.lower().endswith(".mp3"):
             continue
         path = os.path.join(MP3_FOLDER, fname)
         try:
-            if os.path.getmtime(path) < threshold:
+            normalized = os.path.normpath(path)
+            if retained_paths is not None:
+                should_remove = normalized not in retained_paths
+            else:
+                should_remove = os.path.getmtime(path) < threshold
+            if should_remove:
                 os.remove(path)
                 removed.append(path)
         except Exception:
@@ -584,11 +611,11 @@ def cleanup_old_episodes(retention_days: int = 21):
     return removed
 
 
-def cleanup_downloaded_metadata(downloaded: dict, retention_days: int = 21):
+def cleanup_downloaded_metadata(downloaded: dict, retention_days: int = RETENTION_DAYS):
     """
-    Removes metadata entries older than X days.
+    Remove metadata entries outside the retention window.
     """
-    now = datetime.now()
+    now = datetime.now().astimezone()
     threshold = now.timestamp() - (retention_days * 86400)
     new_dl = {}
 
@@ -621,6 +648,30 @@ def normalize_downloaded(downloaded: dict) -> dict:
         ep_copy["mp3_files"] = existing
         cleaned[key] = ep_copy
     return cleaned
+
+
+def cleanup_episode_state(downloaded: dict, retention_days: int = RETENTION_DAYS) -> tuple[dict, list[str], bool]:
+    """
+    Apply metadata and file cleanup as one retention pass.
+    """
+    before = json.dumps(downloaded, sort_keys=True)
+    retained = cleanup_downloaded_metadata(downloaded, retention_days)
+    retained = normalize_downloaded(retained)
+    removed_files = cleanup_old_episodes(retained, retention_days)
+    after = json.dumps(retained, sort_keys=True)
+    changed = before != after or bool(removed_files)
+    return retained, removed_files, changed
+
+
+def publish_snapshot(downloaded: dict, reason: str) -> None:
+    """
+    Rebuild and optionally publish the current rolling snapshot.
+    """
+    print(f"[INFO] Publishing snapshot: {reason}")
+    log_line(f"[INFO] Publishing snapshot: {reason}")
+    build_rss(downloaded)
+    if GITHUB_PUSH:
+        do_git_push()
 
 
 def get_active_show(at_dt: datetime):
@@ -658,15 +709,14 @@ def main(test_run: bool = False):
 
         downloaded = load_downloaded()
 
-        # Run cleanup first
-        removed_files = cleanup_old_episodes()
+        # Run retention first so every publish is a rolling snapshot, not an archive.
+        downloaded, removed_files, cleanup_changed = cleanup_episode_state(downloaded)
         if removed_files:
             print(f"[CLEANUP] Removed {len(removed_files)} old MP3 files.")
             log_line(f"[CLEANUP] Removed {len(removed_files)} old MP3 files.")
-
-        downloaded = cleanup_downloaded_metadata(downloaded)
-        downloaded = normalize_downloaded(downloaded)
-        save_downloaded(downloaded)
+        if cleanup_changed:
+            save_downloaded(downloaded)
+        cleanup_needs_publish = cleanup_changed or not os.path.exists(RSS_FILE)
 
         now = datetime.now().astimezone()
         print(f"[INFO] Now: {now.isoformat()} (weekday={now.weekday()}, hour={now.hour})")
@@ -683,6 +733,8 @@ def main(test_run: bool = False):
             if not active_show:
                 print("Nothing scheduled right now.")
                 log_line("[INFO] Nothing scheduled right now.")
+                if cleanup_needs_publish:
+                    publish_snapshot(downloaded, "retention cleanup with no scheduled show")
                 return
 
             show = active_show
@@ -695,6 +747,8 @@ def main(test_run: bool = False):
                 refreshed_show = get_active_show(start_dt)
                 if not refreshed_show:
                     log_line("[INFO] No scheduled show after wait; exiting.")
+                    if cleanup_needs_publish:
+                        publish_snapshot(downloaded, "retention cleanup after schedule wait")
                     return
                 active_show = refreshed_show
                 show = active_show
@@ -725,6 +779,8 @@ def main(test_run: bool = False):
             if not ok:
                 print(f"[ERROR] Test recording failed for {show_name}")
                 log_line(f"[ERROR] Test recording failed for {show_name}")
+                if cleanup_needs_publish:
+                    publish_snapshot(downloaded, "retention cleanup after failed test recording")
                 return
         else:
             # Record 1 hour from KTAL stream at 192 kbps
@@ -744,6 +800,8 @@ def main(test_run: bool = False):
             if result.returncode != 0 or not os.path.exists(mp3_file):
                 print(f"[ERROR] Recording failed for {show_name}")
                 log_line(f"[ERROR] Recording failed for {show_name}")
+                if cleanup_needs_publish:
+                    publish_snapshot(downloaded, "retention cleanup after failed recording")
                 send_imessage(IMESSAGE_NUMBER, f"[ERROR] Failed recording: {show_name} at {timestamp_str}")
                 return
 
@@ -770,15 +828,10 @@ def main(test_run: bool = False):
         print("[INFO] Metadata saved to downloaded_episodes.json")
         log_line("[INFO] Metadata saved to downloaded_episodes.json")
 
-        # Rebuild RSS feed
-        build_rss(downloaded)
-
         # iMessage notification
         send_imessage(IMESSAGE_NUMBER, f"[OK] Recorded {show_name} at {timestamp_str} ({len(mp3_files)} file(s))")
 
-        # Optional: Git auto-push
-        if GITHUB_PUSH:
-            do_git_push()
+        publish_snapshot(downloaded, "recording complete")
     finally:
         try:
             os.remove(lock_path)
@@ -945,11 +998,38 @@ def do_git_push():
                 stderr=subprocess.DEVNULL,
             )
             subprocess.run(["git", "remote", "add", PUBLISH_REMOTE, remote_url], cwd=publish_root, check=True)
-            subprocess.run(
-                ["git", "push", "--force", PUBLISH_REMOTE, f"HEAD:{PUBLISH_BRANCH}"],
+
+            remote_ref = f"refs/remotes/{PUBLISH_REMOTE}/{PUBLISH_BRANCH}"
+            fetch = subprocess.run(
+                [
+                    "git",
+                    "fetch",
+                    "--depth=1",
+                    PUBLISH_REMOTE,
+                    f"refs/heads/{PUBLISH_BRANCH}:{remote_ref}",
+                ],
                 cwd=publish_root,
-                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
+            remote_sha = ""
+            if fetch.returncode == 0:
+                remote_sha = subprocess.check_output(
+                    ["git", "rev-parse", remote_ref],
+                    cwd=publish_root,
+                    text=True,
+                ).strip()
+                same_tree = subprocess.run(["git", "diff", "--quiet", "HEAD", remote_ref, "--"], cwd=publish_root)
+                if same_tree.returncode == 0:
+                    print("[INFO] No content changes to publish.")
+                    log_line("[INFO] No content changes to publish.")
+                    return
+
+            push_cmd = ["git", "push"]
+            if remote_sha:
+                push_cmd.append(f"--force-with-lease=refs/heads/{PUBLISH_BRANCH}:{remote_sha}")
+            push_cmd.extend([PUBLISH_REMOTE, f"HEAD:{PUBLISH_BRANCH}"])
+            subprocess.run(push_cmd, cwd=publish_root, check=True)
             log_line(f"[INFO] Published {copied_mp3} mp3 file(s) to {PUBLISH_BRANCH}.")
         print("[INFO] Publish complete.")
         log_line("[INFO] Publish complete.")

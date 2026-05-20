@@ -1,0 +1,10 @@
+[Unit]
+Description=Record scheduled KTAL show and publish podcast feed
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/Podcast-feedS
+EnvironmentFile=-/etc/podcast-feedS.env
+ExecStart=/opt/Podcast-feedS/venv/bin/python /opt/Podcast-feedS/record_radio_shows.py
